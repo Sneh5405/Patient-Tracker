@@ -1,0 +1,37 @@
+// Add these models to your existing prisma schema
+
+model Prescription {
+  id         String            @id @default(auto()) @map("_id") @db.ObjectId
+  date       DateTime          @default(now())
+  patientId  String            @db.ObjectId
+  doctorId   String            @db.ObjectId
+  patient    Patient           @relation(fields: [patientId], references: [id])
+  doctor     User              @relation(fields: [doctorId], references: [id])
+  medicines  PrescribedMedicine[]
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+}
+
+model PrescribedMedicine {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  medicineId    String
+  medicineName  String
+  dosage        String
+  timing        Json          // Store as {morning: boolean, afternoon: boolean, evening: boolean}
+  instructions  String
+  duration      String
+  prescription  Prescription  @relation(fields: [prescriptionId], references: [id])
+  prescriptionId String        @db.ObjectId
+}
+
+// Update these models to include relationships with Prescription
+
+model Patient {
+  // Existing fields
+  prescriptions Prescription[]
+}
+
+model User {
+  // Existing fields
+  prescriptions Prescription[] // For doctors only
+}

@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Patient {
+  id       Int     @id @default(autoincrement())
+  name     String
+  email    String  @unique
+  password String?
+  age      Int?
+  gender   String?
+  status   String  @default("pending")
+  // Relations
+  doctors     Doctor[]        @relation("DoctorToPatient")
+  medicalRecords MedicalRecord[]
+  prescriptions  Prescription[]
+  appointments   Appointment[]
+  medicineAdherences MedicineAdherence[]
+  healthMetrics  HealthMetrics[]
+  chats          Chat[]
+}
+
+model MedicalRecord {
+  id         String  @id @default(uuid())
+  patientId  Int
+  patient    Patient @relation(fields: [patientId], references: [id])
+  diagnosis  String
+  medication String
+  createdAt  DateTime @default(now())
+}
+
+model Doctor {
+  id             String   @id @default(uuid())
+  name           String
+  email          String   @unique
+  specialization String
+  password       String
+  // Relations
+  patients       Patient[]       @relation("DoctorToPatient")
+  prescriptions  Prescription[]
+  appointments   Appointment[]
+  chats          Chat[]
+}
+
+model Prescription {
+  id         String            @id @default(uuid()) @map("_id")
+  date       DateTime          @default(now())
+  patientId  Int
+  doctorId   String
+  condition  String            @default("General")
+  patient    Patient           @relation(fields: [patientId], references: [id])
+  doctor     Doctor              @relation(fields: [doctorId], references: [id])
+  medicines  PrescribedMedicine[]
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+}
+model PrescribedMedicine {
+  id            String        @id @default(uuid()) @map("_id") 
+  medicineId    String
+  medicineName  String
+  dosage        String
+  timing        Json          // Store as {morning: boolean, afternoon: boolean, evening: boolean}
+  instructions  String
+  duration      String
+  prescription  Prescription  @relation(fields: [prescriptionId], references: [id])
+  prescriptionId String       
+}
+model Appointment {
+  id              String   @id @default(uuid())
+  patientId       Int
+  patient         Patient  @relation(fields: [patientId], references: [id])
+  doctorId        String
+  doctor          Doctor   @relation(fields: [doctorId], references: [id])
+  appointmentDate DateTime
+  status          String   // "scheduled", "completed", "cancelled", "missed"
+  purpose         String?  // Brief description of appointment purpose
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model MedicineAdherence {
+  id            String   @id @default(uuid())
+  patientId     Int
+  patient       Patient  @relation(fields: [patientId], references: [id])
+  medication    String
+  adherenceStatus String  // "Taken", "Missed", "Pending"
+  missedDoses   Int
+  reminderSent  Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  prescriptionId String?
+  medicineId    String?
+  scheduledTime String?  // "morning", "afternoon", "evening"
+  scheduledDate String?  // YYYY-MM-DD format
+}
+
+model HealthMetrics {
+  id          String  @id @default(uuid())
+  patientId   Int
+  patient     Patient @relation(fields: [patientId], references: [id])
+  metricName  String
+  metricValue Float
+  recordedAt  DateTime @default(now())
+}
+
+model Chat {
+  id          String    @id @default(uuid())
+  patientId   Int
+  patient     Patient   @relation(fields: [patientId], references: [id])
+  doctorId    String
+  doctor      Doctor    @relation(fields: [doctorId], references: [id])
+  messages    Message[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Message {
+  id          String    @id @default(uuid())
+  content     String
+  chatId      String
+  chat        Chat      @relation(fields: [chatId], references: [id])
+  senderId    String    // ID of the sender (could be doctor or patient)
+  senderType  String    // "doctor" or "patient"
+  readStatus  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+}
